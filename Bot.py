@@ -57,7 +57,7 @@ def premium_emoji(text):
     return result
 
 # Bot Configuration
-API_ID = 6843321125
+API_ID =  21124241
 API_HASH = 'b7ddce3d3683f54be788fddae73fa468'
 BOT_TOKEN = '7707742168:AAGYX7yJBHjm-aVECNFHJ8n68YMPRThD76w'
 
